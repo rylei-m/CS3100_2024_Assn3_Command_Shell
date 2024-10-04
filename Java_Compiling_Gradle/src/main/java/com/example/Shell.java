@@ -99,11 +99,39 @@ public class Shell {
             }
             String command = history.get(index);
             System.out.println("Executing: " + command);
-            main(new String[] {command});
+            String[] commandArgs = splitCommand(command);
+
+            // Execute the command
+            if (commandArgs.length > 0) {
+                String firstCommand = commandArgs[0];
+                switch (firstCommand) {
+                    case "ptime":
+                        printPtime();
+                        break;
+                    case "history":
+                        printHistory();
+                        break;
+                    case "list":
+                        listFiles(System.getProperty("user.dir"));
+                        break;
+                    case "cd":
+                        System.setProperty("user.dir", changeDirectory(System.getProperty("user.dir"), commandArgs));
+                        break;
+                    case "mdir":
+                        makeDirectory(System.getProperty("user.dir"), commandArgs);
+                        break;
+                    case "rdir":
+                        removeDirectory(System.getProperty("user.dir"), commandArgs);
+                        break;
+                    default:
+                        executeExternalCommand(commandArgs, command.endsWith("&"));
+                }
+            }
         } catch (NumberFormatException e) {
             System.out.println("Invalid number format.");
         }
     }
+
 
     private static void listFiles(String currentDir) {
         try {
@@ -167,6 +195,11 @@ public class Shell {
     }
 
     private static void executeExternalCommand(String[] commandArgs, boolean isBackground) {
+        // Remove '&' from the last argument if it exists
+        if (isBackground) {
+            commandArgs[commandArgs.length - 1] = commandArgs[commandArgs.length - 1].replace("&", "").trim();
+        }
+
         ProcessBuilder processBuilder = new ProcessBuilder(commandArgs);
         processBuilder.inheritIO();
         try {
@@ -181,4 +214,30 @@ public class Shell {
             System.out.println("Invalid command or error during execution.");
         }
     }
+
+    private static void executePipedCommands(String[] commandArgs1, String[] commandArgs2) {
+        try {
+            ProcessBuilder pb1 = new ProcessBuilder(commandArgs1);
+            ProcessBuilder pb2 = new ProcessBuilder(commandArgs2);
+
+            Process process1 = pb1.start();
+            InputStream inputStream = process1.getInputStream();
+            Process process2 = pb2.start();
+
+            OutputStream outputStream = process2.getOutputStream();
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, length);
+            }
+            outputStream.flush();
+            outputStream.close();
+            process1.waitFor();
+            process2.waitFor();
+
+        } catch (IOException | InterruptedException e) {
+            System.out.println("Error during piped command execution.");
+        }
+    }
+
 }

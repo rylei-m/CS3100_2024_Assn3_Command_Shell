@@ -19,13 +19,15 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+mainClassName = 'com.example.Shell'
+
 jar {
         archiveBaseName = 'Assn2'
         archiveVersion = ''
         archiveFileName = 'Assn2.jar'
         manifest {
             attributes(
-                    'Main-Class': 'com.example.Assn2'
+                    'Main-Class': 'com.example.Shell'
             )
         }
     }
